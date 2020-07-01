@@ -1,10 +1,15 @@
-import styled from 'styled-components'
-
-const Title = styled.h1`
-  color: red;
-  font-size: 50px;
-`
+import Head from "next/head";
+import SearchForm from "../components/SearchForm";
 
 export default function Home() {
-  return <Title>My page</Title>
+  return (
+    <div className="container">
+      <Head>
+        <title> IMDb List Exporter </title>
+      </Head>
+      <div className="row justify-content-center">
+        <SearchForm />
+      </div>
+    </div>
+  );
 }
