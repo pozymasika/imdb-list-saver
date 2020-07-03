@@ -23,12 +23,11 @@ function SearchForm({ className }: Props) {
     evt.preventDefault();
     setLoading(true);
     const parsedUrl = new URL(url);
-    console.log("parsed: ", parsedUrl);
     if (parsedUrl.origin !== IMDB_URL) {
       return false;
     }
 
-    const [_, listId] = parsedUrl.pathname
+    const [, listId] = parsedUrl.pathname
       .substring(1, parsedUrl.pathname.length - 1)
       .split("/");
 

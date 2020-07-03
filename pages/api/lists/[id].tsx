@@ -2,7 +2,7 @@ import { NextApiResponse, NextApiRequest } from "next";
 import request from "request-promise";
 import cheerio from "cheerio";
 import { IMDB_BASE_LIST_URL, IMDB_URL } from "../../../constants";
-import { ListItem, ListData } from "../../../types";
+import { ListData } from "../../../types";
 
 export default function (req: NextApiRequest, res: NextApiResponse) {
   const {
@@ -23,7 +23,7 @@ export default function (req: NextApiRequest, res: NextApiResponse) {
           title: listTitle,
           items: [],
         };
-        $(".lister > .lister-list .lister-item").each((idx, el) => {
+        $(".lister > .lister-list .lister-item").each((_idx, el) => {
           let rating = parseFloat(
             $(".lister-item-content span.ipl-rating-star__rating", el).text()
           );
