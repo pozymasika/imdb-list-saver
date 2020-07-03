@@ -9,7 +9,7 @@ export default function (req: NextApiRequest, res: NextApiResponse) {
     query: { id },
   } = req;
   const url = IMDB_BASE_LIST_URL + `/${id}/`;
-  request
+  return request
     .get(url, {
       headers: {
         Origin: IMDB_URL,

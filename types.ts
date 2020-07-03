@@ -14,5 +14,6 @@ export interface ListItem {
   rated?: string;
   stars?: string[];
   image?: string;
+  itemIdx?: number;
   description: string;
 }
