@@ -45,7 +45,7 @@ function SearchForm({ className }: Props) {
           return data;
         });
       })
-      .catch((err) => setError({ message: "Unknown Error Occured" }))
+      .catch(() => setError({ message: "Unknown Error Occured" }))
       .finally(() => {
         setLoading(false);
       });
