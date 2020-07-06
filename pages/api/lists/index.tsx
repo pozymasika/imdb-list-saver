@@ -1,16 +1,27 @@
 import { NextApiResponse, NextApiRequest } from "next";
 import request from "request-promise";
+import url from "url";
 import cheerio from "cheerio";
-import { IMDB_BASE_LIST_URL, IMDB_URL } from "../../../constants";
+import { IMDB_URL, IMDB_HOST } from "../../../constants";
 import { ListData } from "../../../types";
 
+const isDev = process.env.NODE_ENV === "development";
+
 export default function (req: NextApiRequest, res: NextApiResponse) {
-  const {
-    query: { id },
-  } = req;
-  const url = IMDB_BASE_LIST_URL + `/${id}/`;
+  const { body } = req;
+  const parsedBody = JSON.parse(body);
+  let imdbUrl = url.parse(parsedBody.url);
+  console.log(imdbUrl);
+  if (imdbUrl.host !== IMDB_HOST) {
+    res.status(500).json({
+      error: {
+        message: "You need to use an IMDb url - from " + IMDB_URL,
+      },
+    });
+    return Promise.reject({});
+  }
   return request
-    .get(url, {
+    .get(parsedBody.url, {
       headers: {
         Origin: IMDB_URL,
       },
@@ -30,13 +41,12 @@ export default function (req: NextApiRequest, res: NextApiResponse) {
           // we get text like this:
           // \n Director:\nStanley Kubrick\n | \n    Stars:\nMalcolm McDowell, \nPatrick Magee, \nMichael Bates, \nWarren Clarke\n
           // so we just manipulate it to get directors and stars
-          const directorAndStarsText = $(
-            ".lister-item-content .ratings-metascore",
-            el
-          )
-            .next()
-            .next()
-            .text();
+          const directorAndStarsText =
+            $(".lister-item-content .ratings-metascore", el)
+              .next()
+              .next()
+              .text() ||
+            $(".lister-item-content .ratings-bar", el).next().next().text();
           const [directors, stars] = directorAndStarsText.split("|");
           let movieData = {
             title: $(".lister-item-header a", el).text(),
@@ -49,9 +59,9 @@ export default function (req: NextApiRequest, res: NextApiResponse) {
               ".lister-item-content .metascore.favorable",
               el
             ).text(),
-            description: $(".lister-item-content .ratings-metascore", el)
-              .next()
-              .text(),
+            description:
+              $(".lister-item-content .ratings-metascore", el).next().text() ||
+              $(".lister-item-content .ratings-bar", el).next().text(),
             directors: directors?.split(":")[1]?.split(","),
             stars: stars?.split(":")[1]?.split(","),
             // the image is lazyloaded, real image is in loadlate attr
@@ -61,6 +71,13 @@ export default function (req: NextApiRequest, res: NextApiResponse) {
         });
         return res.status(200).json(listData);
       },
-      (error) => res.status(error.statusCode).json({ error })
+      (error) => {
+        return res.status(error.statusCode || 400).json({
+          error: {
+            code: error.statusCode,
+            message: isDev ? error.message : null,
+          },
+        });
+      }
     );
 }

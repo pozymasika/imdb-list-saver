@@ -4,7 +4,6 @@ import slugify from "slugify";
 import domToImage from "dom-to-image";
 import fileSaver from "file-saver";
 import InputRange, { Range } from "react-input-range";
-import { IMDB_URL } from "../constants";
 import { ListData, ListItem } from "../types";
 
 type Props = {
@@ -17,33 +16,36 @@ function SearchForm({ className }: Props) {
   const [data, setData] = React.useState<ListData | undefined>();
   const [moviesToShow, setMoviesToShow] = React.useState<Range | number>(1);
   const [url, setUrl] = React.useState("");
+  const [error, setError] = React.useState<
+    Partial<{ message: string; code: number }>
+  >();
   const domRef = React.useRef<HTMLDivElement>(null);
 
   function onSubmit(evt: React.FormEvent<HTMLFormElement>) {
     evt.preventDefault();
     setLoading(true);
-    const parsedUrl = new URL(url);
-    if (parsedUrl.origin !== IMDB_URL) {
-      return false;
-    }
 
-    const [, listId] = parsedUrl.pathname
-      .substring(1, parsedUrl.pathname.length - 1)
-      .split("/");
-
-    fetch(`/api/lists/${listId}`, {
+    fetch(`/api/lists`, {
       method: "POST",
+      body: JSON.stringify({ url }),
     })
       .then((resp) => {
         return resp.json().then((data) => {
+          if (data.error) {
+            setData(undefined);
+            return setError(data.error);
+          }
+
           setMoviesToShow({
             min: 1,
             max: data.items.length,
           });
           setData(data);
+          setError(undefined);
           return data;
         });
       })
+      .catch((err) => setError({ message: "Unknown Error Occured" }))
       .finally(() => {
         setLoading(false);
       });
@@ -78,7 +80,10 @@ function SearchForm({ className }: Props) {
 
   return (
     <div
-      className={className + " d-flex flex-column justify-content-center pt-4"}
+      className={
+        className +
+        " d-flex flex-column justify-content-center pt-4 pl-2 pr-2 w-100"
+      }
     >
       <h3> IMDb List Exporter </h3>
       <p className="app-desc">
@@ -88,15 +93,18 @@ function SearchForm({ className }: Props) {
       <ul className="app-desc list-unstyled">
         <li> Some notes: </li>
         <li className="ml-3">
-          The list url should be in the format{" "}
-          <code>https://www.imdb.com/list/ls080427652/</code>
+          The list url should be in the formats{" "}
+          <code>https://www.imdb.com/list/ls080427652/</code> or{" "}
+          <code>
+            https://www.imdb.com/search/title/?groups=top_250&sort=user_rating
+          </code>
         </li>
         <li className="ml-3">
           <a href="https://www.imdb.com/user/ur23892615/lists">Click here</a> to
           browser through IMDb editor lists
         </li>
       </ul>
-      <div className="d-flex justify-content-between align-items-center p-3">
+      <div className="d-flex flex-column flex-sm-row pt-3 pb-3">
         <form method="get" className="form-inline" onSubmit={onSubmit}>
           <div className="form-group">
             <label htmlFor="url" className="sr-only">
@@ -137,9 +145,15 @@ function SearchForm({ className }: Props) {
           )}
         </div>
       </div>
+      {error && (
+        <div className="d-flex flex-column alert alert-error">
+          {error.code === 404 ? "Failed to find list" : "Error retrieving list"}
+          . Please try again {error.message && <code>{error.message} </code>}
+        </div>
+      )}
       {data ? (
         <>
-          <div className="d-flex flex-column p-3">
+          <div className="d-flex flex-column pt-3 pb-3">
             <p className="text-italic">
               Use the slider below to select movies you want to appear in the{" "}
               image
@@ -153,7 +167,7 @@ function SearchForm({ className }: Props) {
               onChangeComplete={(value) => console.log(value)}
             />
           </div>
-          <div className="p-3 list-results" ref={domRef}>
+          <div className="pt-3 pb-3 list-results" ref={domRef}>
             <h2 className="font-weight-bold mb-4">{data.title}</h2>
             <ul className="list-unstyled">
               {filteredItems.map((item, idx) => (
@@ -232,11 +246,22 @@ function SearchForm({ className }: Props) {
 
 export default styled(SearchForm)`
   min-height: 100vh;
+  max-width: 700px;
   #url {
     min-width: 350px;
+    @media (max-width: 350px) {
+      min-width: 100%;
+    }
+  }
+  .input-range {
+    max-width: 350px;
   }
   .app-desc {
     max-width: 700px;
+  }
+  .alert {
+    overflow-y: auto;
+    max-height: 300px;
   }
   .list-results {
     max-width: 600px;
